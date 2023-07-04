@@ -1,6 +1,6 @@
 import numpy as np
 import pickle
-from geopy.distance import vincenty
+from geopy.distance import geodesic
 import math
 import time
 import random
@@ -8,14 +8,15 @@ import pandas as pd
 
 # Change the current working directory to the location of 'Combined Trajectory_Label_Geolife' folder.
 
-current = time.clock()
+current = time.time()
 min_threshold = 20
 max_threshold = 248
 min_distance = 150
 min_time = 60
 
+print("Unpickling the trajectories")
 
-filename = '../Mode-codes-Revised/paper2_Trajectory_Label.pickle'
+filename = './paper2_Trajectory_Label.pickle'
 with open(filename, 'rb') as f:
     trajectory_all_user_with_label, trajectory_all_user_wo_label = pickle.load(f)
 
@@ -83,9 +84,12 @@ def labeled_gps_to_trip(trajectory_one_user, trip_time):
             trajectory_one_user.remove(trajectory_one_user[i + 1])
     return all_trip_one_user
 
+
+print("Processing trips with label")
 # The two following lists contain all trips of all users.
 trip_all_user_with_label = [labeled_gps_to_trip(trajectory, trip_time=20*60) for trajectory in
                             trajectory_all_user_with_label]
+print("Processing trips without label")
 trip_all_user_wo_label = [unlabeled_gps_to_trip(trajectory, trip_time=20*60) for trajectory in
                           trajectory_all_user_wo_label]
 
@@ -102,7 +106,7 @@ def compute_delta_time(p1, p2):
 def compute_distance(p1, p2):
     lat_long_1 = (p1[0], p1[1])
     lat_long_2 = (p2[0], p2[1])
-    return vincenty(lat_long_1, lat_long_2).meters
+    return geodesic(lat_long_1, lat_long_2).meters
 
 
 def compute_speed(distance, delta_time):
@@ -216,16 +220,21 @@ def compute_trip_motion_features(all_trip_one_user, data_type):
                 all_trip_motion_features_one_user.append(trip_motion_features)
     return all_trip_motion_features_one_user
 
+
+print("Processing trips with label")
 trip_motion_all_user_with_label = [compute_trip_motion_features(user, data_type='labeled') for user
                                    in trip_all_user_with_label]
+print("Processing trips without label")
 trip_motion_all_user_wo_label = [compute_trip_motion_features(user, data_type='unlabeled') for user
                                  in trip_all_user_wo_label]
 
+print("Pickling the trips")
 # This pickling and unpickling is due to large computation time before this line.
 with open('paper2_trips_motion_features_temp.pickle', 'wb') as f:
     pickle.dump([trip_motion_all_user_with_label, trip_motion_all_user_wo_label], f)
 
-filename = '../Mode-codes-Revised/paper2_trips_motion_features_temp.pickle'
+print("Unpickling the trips")
+filename = './paper2_trips_motion_features_temp.pickle'
 with open(filename, 'rb') as f:
     trip_motion_all_user_with_label, trip_motion_all_user_wo_label = pickle.load(f)
 
@@ -236,26 +245,28 @@ def trip_check_thresholds(trip_motion_all_user, min_threshold, min_distance, min
     if data_type == 'labeled':
         for user in trip_motion_all_user:
             all_user.append(list(filter(lambda trip: len(trip[0][0]) >= min_threshold and np.sum(trip[0][0, :]) >= min_distance
-                                          and np.sum(trip[0][1, :]) >= min_time, user)))
+                                        and np.sum(trip[0][1, :]) >= min_time, user)))
     if data_type == 'unlabeled':
         for user in trip_motion_all_user:
             all_user.append(list(filter(lambda trip: len(trip[0]) >= min_threshold and np.sum(trip[0, :]) >= min_distance
-                                          and np.sum(trip[1, :]) >= min_time, user)))
+                                        and np.sum(trip[1, :]) >= min_time, user)))
     return all_user
 
+
+print("Checking thresholds")
 # Apply the threshold values to each GPS segment
 trip_motion_all_user_with_label = trip_check_thresholds(trip_motion_all_user_with_label, min_threshold=min_threshold, min_distance=min_distance, min_time=min_time,
                                                         data_type='labeled')
 trip_motion_all_user_wo_label = trip_check_thresholds(trip_motion_all_user_wo_label, min_threshold=min_threshold, min_distance=min_distance, min_time=min_time,
-                                                        data_type='unlabeled')
+                                                      data_type='unlabeled')
 
 # Find the median size (M) as the fixed size of all GPS segments.
 trip_length_labeled = [len(trip[0][0]) for user in trip_motion_all_user_with_label for trip in user]
 trip_length_unlabeled = [len(trip[0]) for user in trip_motion_all_user_wo_label for trip in user]
 
 print('Descriptive statistics for labeled',  pd.Series(trip_length_labeled).describe(percentiles=[0.05, 0.1, 0.15,
-                                                                                                      0.25, 0.5, 0.75,
-                                                                                                      0.85, 0.9, 0.95]))
+                                                                                                  0.25, 0.5, 0.75,
+                                                                                                  0.85, 0.9, 0.95]))
 print('Descriptive statistics for unlabeled',  pd.Series(trip_length_unlabeled).describe(percentiles=[0.05, 0.1, 0.15,
                                                                                                       0.25, 0.5, 0.75,
                                                                                                       0.85, 0.9, 0.95]))
@@ -272,13 +283,14 @@ for user in trip_motion_all_user_with_label:
     test_trip_motion_all_user_with_label.extend(user[round(0.8*length):])
 '''
 # Put trips of all user together.
+print("Putting trips of all users together")
 trip_motion_all_user_with_label = [trip for user in trip_motion_all_user_with_label for trip in user]
 random.shuffle(trip_motion_all_user_with_label)
 trip_motion_all_user_wo_label = [trip for user in trip_motion_all_user_wo_label for trip in user]
 random.shuffle(trip_motion_all_user_wo_label)
 
-
+print("Pickling the trips")
 with open('paper2_trips_motion_features_NotFixedLength_woOutliers.pickle', 'wb') as f:
     pickle.dump([trip_motion_all_user_with_label, trip_motion_all_user_wo_label], f)
 
-print('Running time', time.clock() - current)
+print('Running time', time.time() - current)

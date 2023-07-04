@@ -17,11 +17,11 @@ a = np.transpose(x, (1, 0, 2))
 tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True))
 sess = print(tf.Session(config=tf.ConfigProto(log_device_placement=True)))
 
-start_time = time.clock()
+start_time = time.time()
 np.random.seed(7)
 random.seed(7)
 
-filename = '../Mode-codes-Revised/paper2_data_for_DL_train_val_test_prepared.pickle'
+filename = './paper2_data_for_DL_train_val_test_prepared.pickle'
 with open(filename, 'rb') as f:
     Train_X, Train_Y, Val_X, Val_Y, Val_Y_ori, Test_X, Test_Y, Test_Y_ori, X_unlabeled = pickle.load(f)
 # Training and test set for GPS segments
@@ -34,15 +34,12 @@ index = np.arange(len(Train_X))
 np.random.shuffle(index)
 Train_X = Train_X[index[:round(prop*len(Train_X))]]
 Train_Y = Train_Y[index[:round(prop*len(Train_Y))]]
-#Train_X_Comb = np.vstack((Train_X, Train_X_Unlabel))
+# Train_X_Comb = np.vstack((Train_X, Train_X_Unlabel))
 random.shuffle(Train_X_Comb)
-
 
 
 NoClass = 5
 Threshold = 200
-
-
 
 
 # Model and Compile

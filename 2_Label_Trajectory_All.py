@@ -2,7 +2,8 @@ import pickle
 from datetime import datetime
 import os
 import time
-start_time = time.clock()
+from tqdm import tqdm
+start_time = time.time()
 
 
 def days_date(time_str):
@@ -14,6 +15,7 @@ def days_date(time_str):
     delta_time_days = no_days.days + current.hour / 24.0 + current.minute / (24. * 60.) + current.second / (24. * 3600.)
     return delta_time_days
 
+
 # Change Mode Name to Mode index
 Mode_Index = {"walk": 0, "run": 9, "bike": 1, "bus": 2, "car": 3, "taxi": 3, "subway": 4, "railway": 4,
               "train": 4, "motocycle": 8, "boat": 9, "airplane": 9, "other": 9}
@@ -21,15 +23,18 @@ Mode_Index = {"walk": 0, "run": 9, "bike": 1, "bus": 2, "car": 3, "taxi": 3, "su
 # Ground modes are the modes that we use in this paper.
 Ground_Mode = ['walk', 'bike', 'bus', 'car', 'taxi', 'subway', 'railway', 'train']
 
-geolife_dir = '../Geolife Trajectories 1.3-Raw-All/Geolife Trajectories 1.3/Data/'
+geolife_dir = './Geolife Trajectories 1.3/Data/'
 users_folder = os.listdir(geolife_dir)
 trajectory_all_user_wo_label = []
 trajectory_all_user_with_label = []
 label_all_user = []
-for folder in users_folder:
+for folder in tqdm(users_folder):
     if len(os.listdir(geolife_dir + folder)) == 1:
         trajectory_dir = geolife_dir + folder + '/Trajectory/'
         user_trajectories = os.listdir(trajectory_dir)
+        # //sort all the .plt files in trajectory_dir
+        user_trajectories = list(map(lambda sorted_plt: str(sorted_plt) + '.plt', sorted(list(map(lambda x: int(x.rstrip('.plt')),
+                                                                                                  user_trajectories)))))
         trajectory_one_user = []
         for plt in user_trajectories:
             with open(trajectory_dir + plt, 'r', newline='', encoding='utf-8') as f:
@@ -83,16 +88,16 @@ for index, user in enumerate(label_all_user):
                 break
 
         if trajectory_user[-1][2] < end:
-            end_index = start_index + 1 + len(trajectory_user)
+            end_index = start_index + 1 + len(trajectory_user)  # no change here
             classes[mode].extend(list(range(start_index, end_index)))
             break
         else:
             for index2, trajectory in enumerate(trajectory_user):
                 if trajectory[2] > end:
                     end_index = start_index + 1 + index2
-                    trajectory_user = trajectory_user[index2 + 1:]
+                    trajectory_user = trajectory_user[index2:]  # change suggested by lzhmarkk
                     classes[mode].extend(list(range(start_index, end_index)))
-                    start_index = end_index + 1
+                    start_index = end_index - 1  # also here (but different than lzhmarkk)
                     break
 
     for k, v in classes.items():
@@ -107,4 +112,4 @@ for index, user in enumerate(label_all_user):
 with open("paper2_Trajectory_Label.pickle", 'wb') as f:
     pickle.dump([trajectory_all_user_with_label_Final, trajectory_all_user_wo_label], f)
 
-print(time.clock() - start_time, 'Seconds')
+print(time.time() - start_time, 'Seconds')

@@ -27,10 +27,10 @@ pool_size = (1, 2)
 num_class = 5
 reg_l2 = tf.contrib.layers.l1_regularizer(scale=0.1)
 initializer = tf.contrib.layers.xavier_initializer(uniform=True, seed=None, dtype=tf.float32)
-#initializer = tf.truncated_normal_initializer()
+# initializer = tf.truncated_normal_initializer()
 
-#sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
-filename = '../Mode-codes-Revised/paper2_data_for_DL_kfold_dataset.pickle'
+# sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
+filename = './paper2_data_for_DL_kfold_dataset.pickle'
 with open(filename, 'rb') as f:
     kfold_dataset, X_unlabeled = pickle.load(f)
 
@@ -53,9 +53,9 @@ def encoder_network(latent_dim, num_filter, input_combined, input_labeled):
 
         if i % 2 != 0:
             encoded_combined = tf.layers.max_pooling2d(encoded_combined, pool_size=pool_size,
-                                                          strides=pool_size, name='pool')
+                                                       strides=pool_size, name='pool')
             encoded_labeled = tf.layers.max_pooling2d(encoded_labeled, pool_size=pool_size,
-                                                          strides=pool_size, name='pool')
+                                                      strides=pool_size, name='pool')
         layers_shape.append(encoded_combined.get_shape().as_list())
 
     layers_shape.append(encoded_combined.get_shape().as_list())
@@ -84,7 +84,7 @@ def decoder_network(latent_combined, input_size, kernel_size, padding, activatio
             scope_name = 'decoder_set_' + str(2*i + 1)
             with tf.variable_scope(scope_name, initializer=initializer):
                 filter_size, activation = (input_size[-1], tf.nn.sigmoid) if i == len(num_filter_) - 1 else (int(num_filter_[i] / 2), tf.nn.relu)
-                if i == len(num_filter_) - 1: # change it len(num_filter_)-1 if spatial size is not dividable by 2
+                if i == len(num_filter_) - 1:  # change it len(num_filter_)-1 if spatial size is not dividable by 2
                     kernel_size = (1, input_size[1] - (decoded_combined.get_shape().as_list()[2] - 1) * strides)
                     padding = 'valid'
                 decoded_combined = tf.layers.conv2d_transpose(inputs=decoded_combined, activation=activation,
@@ -120,14 +120,14 @@ def classifier_mlp(num_class, num_fliter_cls, num_dense, input_latent, num_filte
     conv_layer = input_latent
     for i in range(len(num_fliter_cls)):
         conv_layer = tf.layers.conv2d(inputs=conv_layer, activation=tf.nn.relu, filters=num_filter_cls[i],
-                                  kernel_size=kernel_size, strides=strides, padding=padding,
-                                  kernel_initializer=initializer)
+                                      kernel_size=kernel_size, strides=strides, padding=padding,
+                                      kernel_initializer=initializer)
         if len(num_filter) % 2 == 0:
             if i % 2 != 0:
-                conv_layer = tf.layers.max_pooling2d(conv_layer, pool_size=pool_size,strides=pool_size, name='pool')
+                conv_layer = tf.layers.max_pooling2d(conv_layer, pool_size=pool_size, strides=pool_size, name='pool')
         else:
             if i % 2 == 0:
-                conv_layer = tf.layers.max_pooling2d(conv_layer, pool_size=pool_size,strides=pool_size, name='pool')
+                conv_layer = tf.layers.max_pooling2d(conv_layer, pool_size=pool_size, strides=pool_size, name='pool')
 
     dense = tf.layers.flatten(conv_layer)
     scope_name = 'cls_set_'
@@ -143,8 +143,10 @@ def classifier_mlp(num_class, num_fliter_cls, num_dense, input_latent, num_filte
 
 def semi_supervised(input_latent, input_labeled, input_combined, true_label, alpha, beta, num_class, latent_dim, num_filter, latent_combined, input_size):
 
-    decoded_output = decoder_network(latent_combined=latent_combined, input_size=input_size, kernel_size=kernel_size, padding=padding, activation=activation, num_filter=num_filter)
-    classifier_output, dense = classifier_mlp(num_class=num_class, num_fliter_cls=num_filter_cls, num_dense=num_dense, input_latent=input_latent, num_filter=num_filter)
+    decoded_output = decoder_network(latent_combined=latent_combined, input_size=input_size, kernel_size=kernel_size,
+                                     padding=padding, activation=activation, num_filter=num_filter)
+    classifier_output, dense = classifier_mlp(num_class=num_class, num_fliter_cls=num_filter_cls,
+                                              num_dense=num_dense, input_latent=input_latent, num_filter=num_filter)
 
     loss_ae = tf.reduce_mean(tf.square(input_combined - decoded_output), name='loss_ae') * 100
     loss_cls = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=true_label, logits=classifier_output),
@@ -198,7 +200,7 @@ def transfer_latent_space(X, latent_combined, sess, input_combined):
     X_latent = np.zeros(latent_size)
     num_batches = len(X_latent) // batch_size
     for i in range(num_batches):
-        X_latent[i*batch_size: (i + 1) * batch_size:] = sess.run(latent_combined,feed_dict={input_combined:X[i * batch_size: (i + 1) * batch_size]})
+        X_latent[i*batch_size: (i + 1) * batch_size:] = sess.run(latent_combined, feed_dict={input_combined: X[i * batch_size: (i + 1) * batch_size]})
     X_latent[(i + 1) * batch_size:] = sess.run(latent_combined,
                                                feed_dict={input_combined: X[(i + 1) * batch_size:]})
     return X_latent
@@ -219,6 +221,7 @@ def get_labeled_index(train_x_comb, train_x):
     labeled_index.append(np.arange(len(train_x_comb) % len(train_x)))
     return np.concatenate(labeled_index)
 
+
 def train_val_split(Train_X, Train_Y_ori):
     val_index = []
     for i in range(num_class):
@@ -233,6 +236,7 @@ def train_val_split(Train_X, Train_Y_ori):
     Train_Y_ori = Train_Y_ori[train_index_]
     Train_Y = keras.utils.to_categorical(Train_Y_ori, num_classes=num_class)
     return Train_X, Train_Y, Train_Y_ori, Val_X, Val_Y, Val_Y_ori
+
 
 def rand_stra_sample(Train_X, Train_Y_ori, prop):
     sampled_index = []
@@ -256,7 +260,7 @@ def training(one_fold, X_unlabeled, seed, prop, num_filter, epochs_ae=10, epochs
     random_sample = np.random.choice(len(Train_X), size=round(0.5*len(Train_X)), replace=False, p=None)
     Train_X = Train_X[random_sample]
     Train_Y_ori = Train_Y_ori[random_sample]
-    #Train_X, Train_Y_ori = rand_stra_sample(Train_X, Train_Y_ori, prop)
+    # Train_X, Train_Y_ori = rand_stra_sample(Train_X, Train_Y_ori, prop)
     Train_X, Train_Y, Train_Y_ori, Val_X, Val_Y, Val_Y_ori = train_val_split(Train_X, Train_Y_ori)
     random_sample = np.random.choice(len(X_unlabeled), size=round(prop * len(X_unlabeled)), replace=False, p=None)
     X_unlabeled = X_unlabeled[random_sample]
@@ -291,8 +295,8 @@ def training(one_fold, X_unlabeled, seed, prop, num_filter, epochs_ae=10, epochs
                 unlab_index_range = x_combined_index[i * batch_size: (i + 1) * batch_size]
                 X_ae = Train_X_Comb[unlab_index_range]
                 loss_ae_, _ = sess.run([loss_ae, train_op_ae], feed_dict={input_combined: X_ae})
-                #print('Epoch Num {}, Batches Num {}, Loss_AE {}'.format
-                      #k, i, np.round(loss_ae_, 3)))
+                # print('Epoch Num {}, Batches Num {}, Loss_AE {}'.format
+                # k, i, np.round(loss_ae_, 3)))
 
             unlab_index_range = x_combined_index[(i + 1) * batch_size:]
             X_ae = Train_X_Comb[unlab_index_range]
@@ -377,11 +381,7 @@ def training_all_folds(label_proportions, num_filter):
         print('\n')
     return test_accuracy_fold, test_metrics_fold, mean_std_acc, mean_std_metrics
 
+
 test_accuracy_fold, test_metrics_fold, mean_std_acc, mean_std_metrics = training_all_folds(label_proportions=[0.05],
-                                                  num_filter=[32, 32, 64, 64])
+                                                                                           num_filter=[32, 32, 64, 64])
 a = 1
-
-
-
-
-

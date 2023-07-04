@@ -20,9 +20,9 @@ pool_size = (1, 2)
 num_class = 5
 reg_l2 = tf.contrib.layers.l1_regularizer(scale=0.1)
 initializer = tf.contrib.layers.xavier_initializer(uniform=True, seed=None, dtype=tf.float32)
-#initializer = tf.truncated_normal_initializer()
+# initializer = tf.truncated_normal_initializer()
 
-filename = '../Mode-codes-Revised/paper2_data_for_DL_kfold_dataset.pickle'
+filename = './paper2_data_for_DL_kfold_dataset.pickle'
 with open(filename, 'rb') as f:
     kfold_dataset, X_unlabeled = pickle.load(f)
 
@@ -44,15 +44,15 @@ def encoder_network(latent_dim, num_filter, input_combined, input_unlabeled, inp
                                                name='conv_1', kernel_size=kernel_size, strides=strides, padding=padding)
         with tf.variable_scope(scope_name, reuse=True):
             encoded_unlabeled = tf.layers.conv2d(inputs=encoded_unlabeled, activation=tf.nn.relu, filters=num_filter[i],
-                                               name='conv_1', kernel_size=kernel_size, strides=strides, padding=padding)
+                                                 name='conv_1', kernel_size=kernel_size, strides=strides, padding=padding)
 
         if i % 2 != 0:
             encoded_combined = tf.layers.max_pooling2d(encoded_combined, pool_size=pool_size,
-                                                          strides=pool_size, name='pool')
+                                                       strides=pool_size, name='pool')
             encoded_labeled = tf.layers.max_pooling2d(encoded_labeled, pool_size=pool_size,
-                                                          strides=pool_size, name='pool')
-            encoded_unlabeled = tf.layers.max_pooling2d(encoded_unlabeled, pool_size=pool_size,
                                                       strides=pool_size, name='pool')
+            encoded_unlabeled = tf.layers.max_pooling2d(encoded_unlabeled, pool_size=pool_size,
+                                                        strides=pool_size, name='pool')
         layers_shape.append(encoded_combined.get_shape().as_list())
 
     layers_shape.append(encoded_combined.get_shape().as_list())
@@ -81,7 +81,7 @@ def decoder_network(latent_combined, input_size, kernel_size, padding, activatio
             scope_name = 'decoder_set_' + str(2*i + 1)
             with tf.variable_scope(scope_name, initializer=initializer):
                 filter_size, activation = (input_size[-1], tf.nn.sigmoid) if i == len(num_filter_) - 1 else (int(num_filter_[i] / 2), tf.nn.relu)
-                if i == len(num_filter_) - 1: # change it len(num_filter_)-1 if spatial size is not dividable by 2
+                if i == len(num_filter_) - 1:  # change it len(num_filter_)-1 if spatial size is not dividable by 2
                     kernel_size = (1, input_size[1] - (decoded_combined.get_shape().as_list()[2] - 1) * strides)
                     padding = 'valid'
                 decoded_combined = tf.layers.conv2d_transpose(inputs=decoded_combined, activation=activation,
@@ -100,7 +100,7 @@ def decoder_network(latent_combined, input_size, kernel_size, padding, activatio
             scope_name = 'decoder_set_' + str(2 * i + 1)
             with tf.variable_scope(scope_name, initializer=initializer):
                 filter_size, activation = (input_size[-1], tf.nn.sigmoid) if i == len(num_filter_) - 1 else (int(num_filter_[i] / 2), tf.nn.relu)
-                if i == len(num_filter_): # change it len(num_filter_)-1 if spatial size is not dividable by 2
+                if i == len(num_filter_):  # change it len(num_filter_)-1 if spatial size is not dividable by 2
                     kernel_size = (1, input_size[1] - (decoded_combined.get_shape().as_list()[2] - 1) * strides)
                     padding = 'valid'
                 decoded_combined = tf.layers.conv2d_transpose(inputs=decoded_combined, activation=activation,
@@ -121,19 +121,19 @@ def classifier_mlp(latent_labeled, latent_unlabeled, num_class, num_fliter_cls, 
         scope_name = 'cls_set_' + str(i + 1)
         with tf.variable_scope(scope_name):
             conv_layer_l = tf.layers.conv2d(inputs=conv_layer_l, activation=tf.nn.relu, filters=num_filter_cls[i],
-                                  kernel_size=kernel_size, strides=strides, padding=padding, kernel_initializer=initializer, name='conv')
+                                            kernel_size=kernel_size, strides=strides, padding=padding, kernel_initializer=initializer, name='conv')
         with tf.variable_scope(scope_name, reuse=True):
             conv_layer_ul = tf.layers.conv2d(inputs=conv_layer_ul, activation=tf.nn.relu, filters=num_filter_cls[i],
-                                          kernel_size=kernel_size, strides=strides, padding=padding, kernel_initializer=initializer, name='conv')
+                                             kernel_size=kernel_size, strides=strides, padding=padding, kernel_initializer=initializer, name='conv')
         if len(num_filter) % 2 == 0:
             if i % 2 != 0:
-                conv_layer_l = tf.layers.max_pooling2d(conv_layer_l, pool_size=pool_size,strides=pool_size, name='pool')
-                conv_layer_ul = tf.layers.max_pooling2d(conv_layer_ul, pool_size=pool_size,strides=pool_size, name='pool')
+                conv_layer_l = tf.layers.max_pooling2d(conv_layer_l, pool_size=pool_size, strides=pool_size, name='pool')
+                conv_layer_ul = tf.layers.max_pooling2d(conv_layer_ul, pool_size=pool_size, strides=pool_size, name='pool')
 
         else:
             if i % 2 == 0:
-                conv_layer_l = tf.layers.max_pooling2d(conv_layer_l, pool_size=pool_size,strides=pool_size, name='pool')
-                conv_layer_ul = tf.layers.max_pooling2d(conv_layer_ul, pool_size=pool_size,strides=pool_size, name='pool')
+                conv_layer_l = tf.layers.max_pooling2d(conv_layer_l, pool_size=pool_size, strides=pool_size, name='pool')
+                conv_layer_ul = tf.layers.max_pooling2d(conv_layer_ul, pool_size=pool_size, strides=pool_size, name='pool')
 
     dense_l = tf.layers.flatten(conv_layer_l)
     dense_ul = tf.layers.flatten(conv_layer_ul)
@@ -158,17 +158,20 @@ def classifier_mlp(latent_labeled, latent_unlabeled, num_class, num_fliter_cls, 
 
 
 def semi_supervised(input_labeled, input_unlabeled, input_combined, true_label_l, true_label_ul, alpha, gama, beta, alpha_cls, beta_cls, num_class, latent_dim, num_filter, input_size):
-    latent_combined, latent_labeled, latent_unlabled, layers_shape = encoder_network(latent_dim, num_filter, input_combined=input_combined, input_unlabeled=input_unlabeled, input_labeled=input_labeled)
-    decoded_output = decoder_network(latent_combined=latent_combined, input_size=input_size, kernel_size=kernel_size, padding=padding, activation=activation, num_filter=num_filter)
-    classifier_output_l, classifier_output_ul, dense_last = classifier_mlp(latent_labeled=latent_labeled, latent_unlabeled=latent_unlabled, num_class=num_class, num_fliter_cls=num_filter_cls, num_dense=num_dense, num_filter=num_filter)
+    latent_combined, latent_labeled, latent_unlabled, layers_shape = encoder_network(
+        latent_dim, num_filter, input_combined=input_combined, input_unlabeled=input_unlabeled, input_labeled=input_labeled)
+    decoded_output = decoder_network(latent_combined=latent_combined, input_size=input_size, kernel_size=kernel_size,
+                                     padding=padding, activation=activation, num_filter=num_filter)
+    classifier_output_l, classifier_output_ul, dense_last = classifier_mlp(
+        latent_labeled=latent_labeled, latent_unlabeled=latent_unlabled, num_class=num_class, num_fliter_cls=num_filter_cls, num_dense=num_dense, num_filter=num_filter)
 
     loss_ae = tf.reduce_mean(tf.square(input_combined - decoded_output), name='loss_ae') * 100
     loss_cls_l = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=true_label_l, logits=classifier_output_l),
-                              name='loss_cls')
+                                name='loss_cls')
     loss_cls_ul = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=true_label_ul, logits=classifier_output_ul),
-                              name='loss_cls_ul')
+                                 name='loss_cls_ul')
     total_loss_ae_cls = alpha*loss_ae + beta*loss_cls_l
-    #total_loss_cls = alpha_cls * loss_cls_ul + beta_cls * loss_cls_l
+    # total_loss_cls = alpha_cls * loss_cls_ul + beta_cls * loss_cls_l
     total_loss_cls = alpha * loss_cls_ul + beta * loss_cls_l
     total_loss_all = alpha*loss_ae + gama*loss_cls_ul + beta*loss_cls_l
     loss_reg = tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES, 'EasyNet'))
@@ -204,8 +207,9 @@ def get_labeled_index(train_x_comb, train_x):
 
 def pseudo_label(X_ul, sess, classifier_output_ul, input_unlabeled):
     prediction = sess.run(tf.nn.softmax(classifier_output_ul), feed_dict={input_unlabeled: X_ul})
-    #Y_ul = sess.run(tf.one_hot(prediction, depth=num_class))
+    # Y_ul = sess.run(tf.one_hot(prediction, depth=num_class))
     return prediction
+
 
 def loss_acc_evaluation(Test_X, Test_Y, loss_cls_l, accuracy_cls_l, input_labeled, true_label_l, k, sess):
     metrics = []
@@ -220,12 +224,13 @@ def loss_acc_evaluation(Test_X, Test_Y, loss_cls_l, accuracy_cls_l, input_labele
     Test_Y_batch = Test_Y[(i + 1) * batch_size:]
     if len(Test_X_batch) >= 1:
         loss_cls_, accuracy_cls_ = sess.run([loss_cls_l, accuracy_cls_l],
-                                        feed_dict={input_labeled: Test_X_batch,
-                                                   true_label_l: Test_Y_batch})
+                                            feed_dict={input_labeled: Test_X_batch,
+                                                       true_label_l: Test_Y_batch})
         metrics.append([loss_cls_, accuracy_cls_])
     mean_ = np.mean(np.array(metrics), axis=0)
     print('Epoch Num {}, Loss_cls_Val {}, Accuracy_Val {}'.format(k, mean_[0], mean_[1]))
     return mean_[0], mean_[1]
+
 
 def train_val_split(Train_X, Train_Y_ori):
     val_index = []
@@ -242,6 +247,7 @@ def train_val_split(Train_X, Train_Y_ori):
     Train_Y = keras.utils.to_categorical(Train_Y_ori, num_classes=num_class)
     return Train_X, Train_Y, Train_Y_ori, Val_X, Val_Y, Val_Y_ori
 
+
 def prediction_prob(Test_X, classifier_output, input_labeled, sess):
     prediction = []
     for i in range(len(Test_X) // batch_size):
@@ -253,6 +259,7 @@ def prediction_prob(Test_X, classifier_output, input_labeled, sess):
     prediction = np.vstack(tuple(prediction))
     y_pred = np.argmax(prediction, axis=1)
     return y_pred
+
 
 def training(one_fold, X_unlabeled, seed, prop, num_filter, epochs_ae=10, epochs_cls=20):
     Train_X = one_fold[0]
@@ -333,8 +340,8 @@ def training(one_fold, X_unlabeled, seed, prop, num_filter, epochs_ae=10, epochs
                 accuracy_cls_l_, _ = sess.run([accuracy_cls_l, train_op_cls],
                                               feed_dict={alpha: alfa_val, beta: beta_val, input_labeled: X_l,
                                                          input_unlabeled: X_ul, true_label_l: Y_l, true_label_ul: Y_ul})
-                #print('Epoch Num {}, Batches Num {}, accuracy_cls_l {}'.format
-                      #(k, i, accuracy_cls_l_))
+                # print('Epoch Num {}, Batches Num {}, accuracy_cls_l {}'.format
+                # (k, i, accuracy_cls_l_))
 
             unlab_index_range = x_unlabeled_index[(i + 1) * batch_size:]
             lab_index_range = x_labeled_index[(i + 1) * batch_size:]
@@ -374,7 +381,6 @@ def training(one_fold, X_unlabeled, seed, prop, num_filter, epochs_ae=10, epochs
                 key = 'change_' + str(k)
                 val_accuracy.update({key: val_accuracy[k]})
                 val_loss.update({key: val_loss[k]})
-
 
             elif all([not change_to_ae, val_accuracy[k] < val_accuracy[k - 1],
                       val_accuracy[k] < val_accuracy[k - 2]]):
@@ -431,9 +437,7 @@ def training_all_folds(label_proportions, num_filter):
         print('\n')
     return test_accuracy_fold, test_metrics_fold, mean_std_acc, mean_std_metrics
 
+
 test_accuracy_fold, test_metrics_fold, mean_std_acc, mean_std_metrics = training_all_folds(label_proportions=[0.15, 0.35],
-                                                  num_filter=[32, 32, 64, 64])
+                                                                                           num_filter=[32, 32, 64, 64])
 a = 1
-
-
-

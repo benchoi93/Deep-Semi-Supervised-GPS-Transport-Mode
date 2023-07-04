@@ -17,11 +17,11 @@ min_percentile = 0
 max_percentile = 100
 # Import the final output from Instance_creation file, which is the filtered trips for all users.
 
-filename = '../Mode-codes-Revised/paper2_trips_motion_features_NotFixedLength_woOutliers.pickle'
+filename = './paper2_trips_motion_features_NotFixedLength_woOutliers.pickle'
 with open(filename, 'rb') as f:
     trip_motion_all_user_with_label, trip_motion_all_user_wo_label = pickle.load(f)
-    #trip_motion_all_user_with_label = trip_motion_all_user_with_label[:1000]
-    #trip_motion_all_user_wo_label = trip_motion_all_user_wo_label[:1000]
+    # trip_motion_all_user_with_label = trip_motion_all_user_with_label[:1000]
+    # trip_motion_all_user_wo_label = trip_motion_all_user_wo_label[:1000]
 
 
 def trip_to_fixed_length(trip_motion_all_user, min_threshold, max_threshold, min_distance, min_time, data_type):
@@ -37,27 +37,28 @@ def trip_to_fixed_length(trip_motion_all_user, min_threshold, max_threshold, min
                 total_input.append(trip_padded)
                 total_label.append(mode)
             elif trip_length >= max_threshold:
-                    quotient = trip_length // max_threshold
-                    for i in range(quotient):
-                        trip_truncated = trip[:, i * max_threshold:(i + 1) * max_threshold]
-                        if all([np.sum(trip_truncated[0, :]) >= min_distance, np.sum(trip_truncated[1, :]) >= min_time]):
-                            total_input.append(trip_truncated)
-                            total_label.append(mode)
-                    remain_trip = trip[:, (i + 1) * max_threshold:]
-                    if all([(trip_length % max_threshold) > min_threshold, np.sum(remain_trip[0, :]) >= min_distance,
-                            np.sum(remain_trip[1, :]) >= min_time]):
-                        trip_padded = np.pad(remain_trip, ((0, 0), (0, max_threshold - trip_length % max_threshold)),
-                                             'constant')
-                        total_input.append(trip_padded)
+                quotient = trip_length // max_threshold
+                for i in range(quotient):
+                    trip_truncated = trip[:, i * max_threshold:(i + 1) * max_threshold]
+                    if all([np.sum(trip_truncated[0, :]) >= min_distance, np.sum(trip_truncated[1, :]) >= min_time]):
+                        total_input.append(trip_truncated)
                         total_label.append(mode)
+                remain_trip = trip[:, (i + 1) * max_threshold:]
+                if all([(trip_length % max_threshold) > min_threshold, np.sum(remain_trip[0, :]) >= min_distance,
+                        np.sum(remain_trip[1, :]) >= min_time]):
+                    trip_padded = np.pad(remain_trip, ((0, 0), (0, max_threshold - trip_length % max_threshold)),
+                                         'constant')
+                    total_input.append(trip_padded)
+                    total_label.append(mode)
 
         return np.array(total_input), np.array(total_label)
+
 
 # Max_threshold=200: 200 is the rounded median size of all trips (i.e., GPS trajectory) after removing errors and
 # outliers including: 1) max speed and acceleration, (2) trip length less than 10
 X_labeled, Y_labeled_ori = trip_to_fixed_length(trip_motion_all_user_with_label, min_threshold=min_threshold,
-                                                                max_threshold=max_threshold, min_distance=min_distance, min_time=min_time,
-                                                                data_type='labeled')
+                                                max_threshold=max_threshold, min_distance=min_distance, min_time=min_time,
+                                                data_type='labeled')
 
 
 def k_fold_stratified(X_labeled, Y_labeled_ori, fold=5):
@@ -108,7 +109,6 @@ def create_hand_crafted_features(X):
         J = trip[5, :]
         BR = trip[6, :]
 
-
         # IN: the instances and number of GPS points in each instance for each user k
         # Basic features
         # Dist: Distance of segments
@@ -142,7 +142,7 @@ def create_hand_crafted_features(X):
     X_hand = [Dist, AV, EV, VV, MaxV1, MaxV2, MaxV3, MaxA1, MaxA2, MaxA3, HCR, SR, VCR]
     X_hand = np.array(X_hand, dtype=np.float32).T
 
-    header = ['Distance', 'Average Velocity','Expectation Velocity', 'Variance of Velocity', 'MaxV1', 'MaxV2', 'MaxV3',
+    header = ['Distance', 'Average Velocity', 'Expectation Velocity', 'Variance of Velocity', 'MaxV1', 'MaxV2', 'MaxV3',
               'MaxA1', 'MaxA2', 'MaxA3', 'Heading Rate Change', 'Stop Rate', 'Velocity Change Rate', 'Label']
     return X_hand
 
@@ -187,11 +187,12 @@ def training_all_folds_ml(label_proportions, ml_method):
     for index, prop in enumerate(label_proportions):
         print('All Test Accuracy For ML Mehtod with Prop {} are: {}'.format(prop, test_accuracy_fold[index]))
         print('ML Method test accuracy for prop {}: Mean {}, std {}'.format(prop, mean_std_acc[index][0],
-                                                                                  mean_std_acc[index][1]))
+                                                                            mean_std_acc[index][1]))
         print('ML Method test metrics for prop {}: Mean {}, std {}'.format(prop, mean_std_metrics[index][0],
-                                                                                 mean_std_metrics[index][1]))
+                                                                           mean_std_metrics[index][1]))
         print('\n')
         print('\n')
+
 
 training_all_folds_ml(label_proportions=[0.1, 0.25, 0.50, 0.75, 1.0], ml_method=RandomForestClassifier())
 training_all_folds_ml(label_proportions=[0.1, 0.25, 0.50, 0.75, 1.0], ml_method=KNeighborsClassifier())

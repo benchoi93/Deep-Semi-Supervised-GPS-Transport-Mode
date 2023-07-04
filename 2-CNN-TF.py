@@ -16,7 +16,7 @@ pool_size = (1, 2)
 num_class = 5
 initializer = tf.glorot_uniform_initializer()
 
-filename = '../Mode-codes-Revised/paper2_data_for_DL_kfold_dataset.pickle'
+filename = './paper2_data_for_DL_kfold_dataset.pickle'
 with open(filename, 'rb') as f:
     kfold_dataset, _ = pickle.load(f)
 
@@ -27,11 +27,11 @@ def classifier(num_filter, input_labeled, num_dense):
         scope_name = 'encoder_set_' + str(i + 1)
         with tf.variable_scope(scope_name):
             conv_layer = tf.layers.conv2d(inputs=conv_layer, activation=tf.nn.relu, filters=num_filter[i],
-                                                name='conv_1', kernel_size=kernel_size, strides=strides,
-                                                padding=padding)
+                                          name='conv_1', kernel_size=kernel_size, strides=strides,
+                                          padding=padding)
         if i % 2 != 0:
             conv_layer = tf.layers.max_pooling2d(conv_layer, pool_size=pool_size,
-                                                          strides=pool_size, name='pool')
+                                                 strides=pool_size, name='pool')
 
     dense = tf.layers.flatten(conv_layer)
     units = int(dense.get_shape().as_list()[-1] / 4)
@@ -66,9 +66,9 @@ def loss_acc_evaluation(Test_X, Test_Y, sess, input_labeled, true_label, k, loss
         metrics.append([loss_cls_, accuracy_cls_])
     Test_X_batch = Test_X[(i + 1) * batch_size:]
     Test_Y_batch = Test_Y[(i + 1) * batch_size:]
-    if len(Test_X_batch)>=1:
+    if len(Test_X_batch) >= 1:
         loss_cls_, accuracy_cls_ = sess.run([loss_cls, accuracy_cls], feed_dict={input_labeled: Test_X_batch,
-                                                   true_label: Test_Y_batch})
+                                                                                 true_label: Test_Y_batch})
     metrics.append([loss_cls_, accuracy_cls_])
     mean_ = np.mean(np.array(metrics), axis=0)
     print('Epoch Num {}, Loss_cls_Val {}, Accuracy_Val {}'.format(k, mean_[0], mean_[1]))
@@ -116,7 +116,7 @@ def training(one_fold, seed, prop, num_filter, epochs=20):
     random_sample = np.random.choice(len(Train_X), size=round(prop*len(Train_X)), replace=False, p=None)
     Train_X = Train_X[random_sample]
     Train_Y_ori = Train_Y_ori[random_sample]
-    #Train_X, Train_Y_ori = rand_stra_sample(Train_X, Train_Y_ori, prop)
+    # Train_X, Train_Y_ori = rand_stra_sample(Train_X, Train_Y_ori, prop)
     Train_X, Train_Y, Train_Y_ori, Val_X, Val_Y, Val_Y_ori = train_val_split(Train_X, Train_Y_ori)
     input_size = list(np.shape(Test_X)[1:])
 
@@ -192,7 +192,6 @@ def training_all_folds(label_proportions, num_filter):
         print('\n')
     return test_accuracy_fold, test_metrics_fold, mean_std_acc, mean_std_metrics
 
+
 test_accuracy_fold, test_metrics_fold, mean_std_acc, mean_std_metrics = training_all_folds(label_proportions=[0.1, 0.25, 0.50, 0.75, 1.0],
-                                                  num_filter=[32, 32, 64, 64, 128, 128])
-
-
+                                                                                           num_filter=[32, 32, 64, 64, 128, 128])

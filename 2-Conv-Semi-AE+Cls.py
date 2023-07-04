@@ -35,11 +35,11 @@ pool_size = (1, 2)
 num_class = 5
 reg_l2 = tf.contrib.layers.l1_regularizer(scale=0.1)
 initializer = tf.contrib.layers.xavier_initializer(uniform=True, seed=None, dtype=tf.float32)
-#initializer = tf.truncated_normal_initializer()
+# initializer = tf.truncated_normal_initializer()
 
 # Import the data
-#filename = '../Mode-codes-Revised/paper2_data_for_DL_train_val_test.pickle'
-filename = '../Mode-codes-Revised/paper2_data_for_DL_kfold_dataset_RL.pickle'
+# filename = './paper2_data_for_DL_train_val_test.pickle'
+filename = './paper2_data_for_DL_kfold_dataset_RL.pickle'
 with open(filename, 'rb') as f:
     kfold_dataset, X_unlabeled = pickle.load(f)
 
@@ -63,9 +63,9 @@ def encoder_network(latent_dim, num_filter_ae_cls, input_combined, input_labeled
 
         if i % 2 != 0:
             encoded_combined = tf.layers.max_pooling2d(encoded_combined, pool_size=pool_size,
-                                                          strides=pool_size, name='pool')
+                                                       strides=pool_size, name='pool')
             encoded_labeled = tf.layers.max_pooling2d(encoded_labeled, pool_size=pool_size,
-                                                          strides=pool_size, name='pool')
+                                                      strides=pool_size, name='pool')
         layers_shape.append(encoded_combined.get_shape().as_list())
 
     layers_shape.append(encoded_combined.get_shape().as_list())
@@ -93,7 +93,7 @@ def decoder_network(latent_combined, input_size, kernel_size, padding, activatio
             scope_name = 'decoder_set_' + str(2*i + 1)
             with tf.variable_scope(scope_name, initializer=initializer):
                 filter_size, activation = (input_size[-1], tf.nn.sigmoid) if i == len(num_filter_) - 1 else (int(num_filter_[i] / 2), tf.nn.relu)
-                if i == len(num_filter_): # change it len(num_filter_)-1 if spatial size is not dividable by 2
+                if i == len(num_filter_):  # change it len(num_filter_)-1 if spatial size is not dividable by 2
                     kernel_size = (1, input_size[1] - (decoded_combined.get_shape().as_list()[2] - 1) * strides)
                     padding = 'valid'
                 decoded_combined = tf.layers.conv2d_transpose(inputs=decoded_combined, activation=activation,
@@ -112,7 +112,7 @@ def decoder_network(latent_combined, input_size, kernel_size, padding, activatio
             scope_name = 'decoder_set_' + str(2 * i + 1)
             with tf.variable_scope(scope_name, initializer=initializer):
                 filter_size, activation = (input_size[-1], tf.nn.sigmoid) if i == len(num_filter_) - 1 else (int(num_filter_[i] / 2), tf.nn.relu)
-                if i == len(num_filter_): # change it len(num_filter_)-1 if spatial size is not dividable by 2
+                if i == len(num_filter_):  # change it len(num_filter_)-1 if spatial size is not dividable by 2
                     kernel_size = (1, input_size[1] - (decoded_combined.get_shape().as_list()[2] - 1) * strides)
                     padding = 'valid'
                 decoded_combined = tf.layers.conv2d_transpose(inputs=decoded_combined, activation=activation,
@@ -135,10 +135,10 @@ def classifier_mlp(latent_labeled, num_class, num_filter_cls, num_dense):
                                           kernel_initializer=initializer)
         if len(num_filter_cls) % 2 == 0:
             if i % 2 != 0:
-                conv_layer = tf.layers.max_pooling2d(conv_layer, pool_size=pool_size,strides=pool_size, name='pool')
+                conv_layer = tf.layers.max_pooling2d(conv_layer, pool_size=pool_size, strides=pool_size, name='pool')
         else:
             if i % 2 == 0:
-                conv_layer = tf.layers.max_pooling2d(conv_layer, pool_size=pool_size,strides=pool_size, name='pool')
+                conv_layer = tf.layers.max_pooling2d(conv_layer, pool_size=pool_size, strides=pool_size, name='pool')
 
     dense = tf.layers.flatten(conv_layer)
     units = int(dense.get_shape().as_list()[-1] / 4)
@@ -159,15 +159,16 @@ def semi_supervised(input_labeled, input_combined, true_label, alpha, beta, num_
 
     latent_combined, latent_labeled, layers_shape = encoder_network(latent_dim=latent_dim, num_filter_ae_cls=num_filter_ae_cls,
                                                                     input_combined=input_combined, input_labeled=input_labeled)
-    decoded_output = decoder_network(latent_combined=latent_combined, input_size=input_size, kernel_size=kernel_size, activation=activation, padding=padding)
+    decoded_output = decoder_network(latent_combined=latent_combined, input_size=input_size,
+                                     kernel_size=kernel_size, activation=activation, padding=padding)
     classifier_output, dense = classifier_mlp(latent_labeled, num_class, num_filter_cls=num_filter_cls, num_dense=num_dense)
-    #classifier_output = classifier_cnn(latent_labeled, num_filter=num_filter)
+    # classifier_output = classifier_cnn(latent_labeled, num_filter=num_filter)
 
     loss_ae = tf.reduce_mean(tf.square(input_combined - decoded_output), name='loss_ae') * 100
     loss_cls = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=true_label, logits=classifier_output),
                               name='loss_cls')
     total_loss = alpha*loss_ae + beta*loss_cls
-    #total_loss = beta * loss_ae + alpha * loss_cls
+    # total_loss = beta * loss_ae + alpha * loss_cls
     loss_reg = tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES, 'EasyNet'))
     train_op_ae = tf.train.AdamOptimizer().minimize(loss_ae)
     train_op_cls = tf.train.AdamOptimizer().minimize(loss_cls)
@@ -213,11 +214,11 @@ def loss_acc_evaluation(Test_X, Test_Y, loss_cls, accuracy_cls, input_labeled, t
     Test_Y_batch = Test_Y[(i + 1) * batch_size:]
     if len(Test_X_batch) >= 1:
         loss_cls_, accuracy_cls_ = sess.run([loss_cls, accuracy_cls],
-                                        feed_dict={input_labeled: Test_X_batch,
-                                                   true_label: Test_Y_batch})
+                                            feed_dict={input_labeled: Test_X_batch,
+                                                       true_label: Test_Y_batch})
         metrics.append([loss_cls_, accuracy_cls_])
     mean_ = np.mean(np.array(metrics), axis=0)
-    #print('Epoch Num {}, Loss_cls_Val {}, Accuracy_Val {}'.format(k, mean_[0], mean_[1]))
+    # print('Epoch Num {}, Loss_cls_Val {}, Accuracy_Val {}'.format(k, mean_[0], mean_[1]))
     return mean_[0], mean_[1]
 
 
@@ -295,7 +296,7 @@ def training(one_fold, X_unlabeled, seed, prop, num_filter_ae_cls_all, epochs_ae
             num_batches = len(Train_X_Comb) // batch_size
             # alfa_val1 = [0.0, 0.0, 1.0, 1.0, 1.0]
             # beta_val1 = [1.0, 1.0, 0.1, 0.1, 0.1]
-            alfa_val = 1  ## 0
+            alfa_val = 1  # 0
             beta_val = 1
             change_to_ae = 1  # the value defines that algorithm is ready to change to joint ae-cls
             change_times = 0  # No. of times change from cls to ae-cls, which is 2 for this training strategy
@@ -304,8 +305,8 @@ def training(one_fold, X_unlabeled, seed, prop, num_filter_ae_cls_all, epochs_ae
                 # alfa_val = alfa_val1[k]
                 # beta_val = beta_val1[k]
 
-                #beta_val = min(((1 - 0.1) / (-epochs_ae_cls)) * k + 1, 0.1) ##
-                #alfa_val = max(((1.5 - 1) / (epochs_ae_cls)) * k + 1, 1.5)
+                # beta_val = min(((1 - 0.1) / (-epochs_ae_cls)) * k + 1, 0.1) ##
+                # alfa_val = max(((1.5 - 1) / (epochs_ae_cls)) * k + 1, 1.5)
 
                 x_combined_index = get_combined_index(train_x_comb=Train_X_Comb)
                 x_labeled_index = get_labeled_index(train_x_comb=Train_X_Comb, train_x=Train_X)
@@ -320,8 +321,8 @@ def training(one_fold, X_unlabeled, seed, prop, num_filter_ae_cls_all, epochs_ae
                                                                                 input_combined: X_ae,
                                                                                 input_labeled: X_cls,
                                                                                 true_label: Y_cls})
-                    #print('Epoch Num {}, Batches Num {}, Loss_AE {}, Loss_cls {}, Accuracy_train {}'.format
-                          #(k, i, np.round(loss_ae_, 3), np.round(loss_cls_, 3), np.round(accuracy_cls_, 3)))
+                    # print('Epoch Num {}, Batches Num {}, Loss_AE {}, Loss_cls {}, Accuracy_train {}'.format
+                    # (k, i, np.round(loss_ae_, 3), np.round(loss_cls_, 3), np.round(accuracy_cls_, 3)))
 
                 unlab_index_range = x_combined_index[(i + 1) * batch_size:]
                 lab_index_range = x_labeled_index[(i + 1) * batch_size:]
@@ -361,8 +362,8 @@ def training(one_fold, X_unlabeled, seed, prop, num_filter_ae_cls_all, epochs_ae
                     key = 'change_' + str(k)
                     val_accuracy.update({key: val_accuracy[k]})
                     val_loss.update({key: val_loss[k]})
-                    #val_accuracy.update({k: val_accuracy[max_acc] - 0.001}) ##
-                    #val_loss.update({k: val_loss[max_acc] + 0.001})  ##
+                    # val_accuracy.update({k: val_accuracy[max_acc] - 0.001}) ##
+                    # val_loss.update({k: val_loss[max_acc] + 0.001})  ##
 
                 elif all([not change_to_ae, val_accuracy[k] < val_accuracy[k - 1],
                           val_accuracy[k] < val_accuracy[k - 2]]):
@@ -375,14 +376,14 @@ def training(one_fold, X_unlabeled, seed, prop, num_filter_ae_cls_all, epochs_ae
                     num_epoch_ae_cls = k - num_epoch_cls_only - 1
                     alfa_val = 1.5
                     beta_val = 0.2
-                    change_times += 1  ##
+                    change_times += 1
                     change_to_ae = 1
                     key = 'change_' + str(k)
                     val_accuracy.update({key: val_accuracy[k]})
                     val_loss.update({key: val_loss[k]})
-                    #val_accuracy.update({k: val_accuracy[max_acc] - 0.001})  ##
-                    #val_loss.update({k: val_loss[max_acc] + 0.001})  ##
-                if change_times == 2: ##
+                    # val_accuracy.update({k: val_accuracy[max_acc] - 0.001})  ##
+                    # val_loss.update({k: val_loss[max_acc] + 0.001})  ##
+                if change_times == 2:
                     break
 
             print("Ensemble {}: Val_Accu ae+cls Over Epochs {}: ".format(z, val_accuracy))
@@ -392,14 +393,15 @@ def training(one_fold, X_unlabeled, seed, prop, num_filter_ae_cls_all, epochs_ae
         ave_class_posterior = sum(class_posterior) / len(class_posterior)
         y_pred = np.argmax(ave_class_posterior, axis=1)
         test_accuracy = accuracy_score(Test_Y_ori, y_pred)
-        #precision = precision_score(Test_Y_ori, y_pred, average='weighted')
-        #recall = recall_score(Test_Y_ori, y_pred, average='weighted')
+        # precision = precision_score(Test_Y_ori, y_pred, average='weighted')
+        # recall = recall_score(Test_Y_ori, y_pred, average='weighted')
         f1_macro = f1_score(Test_Y_ori, y_pred, average='macro')
         f1_weight = f1_score(Test_Y_ori, y_pred, average='weighted')
         print('Semi-AE+Cls Test Accuracy of the Ensemble: ', test_accuracy)
         print('Confusion Matrix: ', confusion_matrix(Test_Y_ori, y_pred))
 
     return test_accuracy, f1_macro, f1_weight
+
 
 def training_all_folds(label_proportions, num_filter):
     test_accuracy_fold = [[] for _ in range(len(label_proportions))]
@@ -408,7 +410,8 @@ def training_all_folds(label_proportions, num_filter):
     mean_std_metrics = [[] for _ in range(len(label_proportions))]
     for index, prop in enumerate(label_proportions):
         for i in range(len(kfold_dataset)):
-            test_accuracy, f1_macro, f1_weight = training(kfold_dataset[i], X_unlabeled=X_unlabeled, seed=7, prop=prop, num_filter_ae_cls_all=num_filter)
+            test_accuracy, f1_macro, f1_weight = training(
+                kfold_dataset[i], X_unlabeled=X_unlabeled, seed=7, prop=prop, num_filter_ae_cls_all=num_filter)
             test_accuracy_fold[index].append(test_accuracy)
             test_metrics_fold[index].append([f1_macro, f1_weight])
         accuracy_all = np.array(test_accuracy_fold[index])
@@ -426,7 +429,6 @@ def training_all_folds(label_proportions, num_filter):
         print('\n')
     return test_accuracy_fold, test_metrics_fold, mean_std_acc, mean_std_metrics
 
+
 test_accuracy_fold, test_metrics_fold, mean_std_acc, mean_std_metrics = training_all_folds(
     label_proportions=[0.15, 0.35], num_filter=[32, 32, 64, 64])
-
-
