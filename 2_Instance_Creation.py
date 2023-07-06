@@ -191,7 +191,13 @@ def compute_trip_motion_features(all_trip_one_user, data_type):
             for i in range(len(trip) - 3):
                 delta_time_1 = compute_delta_time(trip[i], trip[i + 1])
                 delta_time_3 = compute_delta_time(trip[i + 2], trip[i + 3])
-                distance_3 = compute_distance(trip[i + 2], trip[i + 3])
+
+                try:
+                    distance_3 = compute_distance(trip[i + 2], trip[i + 3])
+                except:
+                    trip[i+3][0] = (trip[i+2][0] + trip[i+4][0])/2
+                    distance_3 = compute_distance(trip[i + 2], trip[i + 3])
+
                 speed3 = compute_speed(distance_3, delta_time_3)
                 acc2 = compute_acceleration(speed2, speed3, delta_time_2)
                 relative_distance.append(distance_1)
